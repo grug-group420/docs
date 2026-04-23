@@ -95,6 +95,11 @@
         <a href="#server">Running Server</a>
         <a href="#api">API Reference</a>
         
+        <h3>Training</h3>
+        <a href="#training">Training Pipeline</a>
+        <a href="#training-files">Training Files</a>
+        <a href="#training-rules">Rule Format</a>
+        
         <h3>Philosophy</h3>
         <a href="#philosophy">The Grug Way</a>
     </aside>
@@ -200,6 +205,54 @@ console.log(grugbot.process('joke'));</code></pre>
 curl -X POST http://localhost:3420/api/cmd \
   -H "Content-Type: application/json" \
   -d '{"cmd":"ship"}'</code></pre>
+        </section>
+
+        <section id="training">
+            <h2>🎓 Training Pipeline</h2>
+            <p>Grug is data-driven. The full corpus of wisdom, jokes, smoke-break vibes, and keyword&rarr;response rules lives in plain-text files under <code>apps/grug_training/</code> in the <a href="https://github.com/bad-antics/lateralus-lang/tree/main/lateralus-os/apps/grug_training" style="color: var(--accent);">LateralusOS repo</a>. To teach grug new things you do <strong>not</strong> need to write any C &mdash; just edit the <code>.txt</code> files and rebuild. The build invokes <code>tools/gen_grug_corpus.py</code> which compiles them into a <code>gui/grug_corpus.h</code> header consumed by the kernel.</p>
+
+            <h3 id="training-files">📁 Training Files</h3>
+            <table>
+                <thead><tr><th>File</th><th>Purpose</th><th>Format</th></tr></thead>
+                <tbody>
+                    <tr><td><code>wisdom.txt</code></td><td>Random sayings for <code>/wisdom</code> and unmatched-input fallback</td><td>One quote per line</td></tr>
+                    <tr><td><code>jokes.txt</code></td><td>Random response to <code>/joke</code></td><td>One joke per line</td></tr>
+                    <tr><td><code>smoke.txt</code></td><td>Random response to <code>/smoke</code> and 420 keywords</td><td>One vibe per line</td></tr>
+                    <tr><td><code>rules.txt</code></td><td>Keyword&rarr;response, scanned <em>before</em> the hardcoded ladder</td><td><code>kw1,kw2=&gt;response</code></td></tr>
+                </tbody>
+            </table>
+            <p>Lines starting with <code>#</code> and blank lines are ignored everywhere.</p>
+
+            <h3 id="training-rules">⚡ Rule Format</h3>
+            <pre><code># apps/grug_training/rules.txt
+docker,k8s,helm  =&gt; container is cage for app. distributed cage less good.
+python,pip,django=&gt; snake good. install easy. type loose. ship fast.
+rust,cargo,borrow=&gt; borrow checker is grug yelling at past grug. listen to grug.
+</code></pre>
+            <p>Matching is <strong>case-insensitive substring</strong>. First rule that matches wins. The engine scans <code>rules.txt</code> first, then falls back to the hardcoded keyword ladder, then finally to a random <code>wisdom.txt</code> line.</p>
+
+            <h3>🛠️ Workflow</h3>
+            <pre><code># 1. edit a training file
+vim apps/grug_training/rules.txt
+
+# 2. regenerate the header (also runs automatically during build)
+python3 tools/gen_grug_corpus.py
+#  &rarr; [grug-corpus] gui/grug_corpus.h: 60 wisdom, 29 jokes, 22 smoke, 60 rules
+
+# 3. run the unit tests
+pytest lateralus-os/tests/test_gen_grug_corpus.py    # 8 cases, &lt; 0.1s
+
+# 4. rebuild the OS
+./build_and_boot.sh --iso
+
+# 5. boot QEMU and chat to grug
+./build_and_boot.sh --gui
+# inside the VM: type /stats to see your new counts</code></pre>
+
+            <div class="tip">
+                <strong>Pro tip:</strong> live counts are printed on every kernel boot in the form
+                <code>[trained] 60w/29j/22s/60r</code> &mdash; one quick glance confirms grug picked up your additions.
+            </div>
         </section>
 
         <section id="philosophy">
